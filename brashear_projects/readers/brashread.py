@@ -99,7 +99,8 @@ class PantryDat():
 
         self.df=self._combine(sheets)
         self.df=self.df.rename(columns=mapper)[mapper.values()]
-
+        self.df['id_fix']=self.df['id'].fillna(0)+self.df['id2'].fillna(0)
+        self.df['id_fix'].replace(0,np.nan,inplace=True)
         return self.df
 
 
