@@ -1,9 +1,4 @@
-install.packages("janitor","readxl","dplyr","survival")
-install.packages("caret")
-install.packages("car")
-install.packages("ggplot2")
-install.packages("pROC")
-install.packages("effects")
+library(gridExtra)
 library(janitor)
 library(readxl)
 library(dplyr)
@@ -12,7 +7,9 @@ library(caret)
 library(car)
 library(ggplot2)
 library(dplyr)
+summary(best_model)
 
+#r code initially by Lona Adams
 pittsburgh_census <- data.frame(
   variable = c(
     "Population_2024",
@@ -156,12 +153,12 @@ pantry_data <- pantry_data %>%
 
 #table(pantry_data$returned)
 
-"""568 clients are new (answered "no" to receiving food last month)
+"568 clients are new (answered no to receiving food last month)
 
-761 clients are returning (answered "yes" to receiving food last month)
+761 clients are returning (answered yes to receiving food last month)
 
 older model
-"""
+"
 
 pantry_data <- pantry_data %>%
   mutate(
@@ -181,7 +178,7 @@ colSums(is.na(pantry_data[, c("monthly_income", "family_size", "age_group")]))
 
 pantry_data$family_size <- as.numeric(gsub("[^0-9]", "", pantry_data$family_size))
 
-"""new model :P"""
+"new model :P"
 
 model_return <- glm(returned ~ income_cat + family_size + age_group,
                     family = binomial,
@@ -189,12 +186,13 @@ model_return <- glm(returned ~ income_cat + family_size + age_group,
 
 #summary(model_return)
 
-"""Income: Clients with missing income data were much more likely to be returning clients (p-value = 4.66e-06)
+"
+Income: Clients with missing income data were much more likely to be returning clients (p-value = 4.66e-06)
 
 Family Size: This variable was not a significant predictor of return status (p-value = 0.697)
 
 Age Group: None of the age group categories showed statistical significance. The only one approaching significance was the 60-69 age group (p-value = 0.0897)
-"""
+"
 
 pantry_data$timestamp <- as.Date(
   as.numeric(pantry_data$timestamp),
@@ -217,7 +215,7 @@ km_income <- survfit(
   data = survival_data
 )
 
-"""income"""
+"income"
 
 survival_data <- survival_data %>%
   left_join(
@@ -254,7 +252,7 @@ survival_data$event <- ifelse(
   0    # censored (still active)
 )
 
-"""not income"""
+"not income"
 
 surv_object <- Surv(
   time = survival_data$duration_days,
@@ -268,7 +266,7 @@ plot(km_fit,
      ylab = "Probability of Remaining Active",
      main = "Kaplan-Meier Survival Curve")
 
-"""What's being measured
+"What's being measured
 
 Time: Days between a client's first visit and last visit
 
@@ -276,12 +274,12 @@ Event: When a client stops coming (drops out)
 
 Censoring: When we lose track of a client because there's no more data
 
-Event = 1: Client's last visit was BEFORE the data ends → they "dropped out" (experienced the event)
+Event = 1: Client's last visit was BEFORE the data ends → they dropped out (experienced the event)
 
 Event = 0: Client's last visit was AT the data ending → they were still active (censored)
 
 Overall
-"""
+"
 
 # Final model using ALL data
 pantry_clean <- pantry_data %>%
@@ -321,8 +319,6 @@ best_model <- glm(
   family = binomial,
   data = pantry_clean
 )
-
-summary(best_model)
 
 # Check what drives the "Missing" effect
 pantry_clean %>%
@@ -468,10 +464,6 @@ ggplot(key_finding, aes(x = category, y = return_rate, color = category)) +
   theme(legend.position = "none") +
   scale_color_manual(values = c("Reported Income" = "#E69F00",
                                  "Did Not Report Income" = "#CC79A7"))
-
-install.packages("gridExtra")
-
-library(gridExtra)
 
 # Create multiple plots
 p1 <- ggplot(pantry_clean, aes(x = age_group, fill = factor(is_returning))) +
