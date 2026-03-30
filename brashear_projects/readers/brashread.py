@@ -1,5 +1,6 @@
 import pandas as pd
 import numpy as np
+import re
 
 class PantryDat():
     """
@@ -100,9 +101,11 @@ class PantryDat():
         self.df=self._combine(sheets)
         self.df=self.df.rename(columns=mapper)[mapper.values()]
         self.df['id_fix']=self.df['id'].fillna(0)+self.df['id2'].fillna(0)
-        self.df['id_fix'].replace(0,np.nan,inplace=True)
+        #self.df['id_fix'].replace(0,np.nan,inplace=True)
+        self.df['time']=pd.to_datetime(self.df['timestamp'])
+        self.df['age_type']=self.df['age_group'].apply(self._age_fix)
+        self.df['income_type']=self.df['house_income'].apply(self._income_fix)
         return self.df
-
 
     def _combine(self,sheets):
         """
@@ -116,18 +119,46 @@ class PantryDat():
                 df=page
         return df
     
-    def _date_fix(self,sheets):
+    def _income_fix(self,string):
         """
-        Changes the pick up dates to timestamps
+        Turns income into a string, either high, low, or medium
         """
-        for sheet in sheets:
-            pass
-        return sheets
+        if string=='' or type(string) is not str:
+            if type(string) is int or type(string) is float:
+                num=string
+            else:return np.nan
+        else:
+            string1=re.findall(r'-?\d*\.?\d+', string)
+            if string1:
+                string1=string1[0].split('.',1)[0]
+                num=int(string1)
+            else:num=0
+        if num<1001:
+            return "Low"
+        elif num<3000:
+            return "Medium"
+        else:
+            return "High"
+
+    def _age_fix(self,string):
+        """"
+        turns age into a useful range
+        """
+        if string=='' or type(string) is not str:
+            return np.nan
+        num=int(re.sub(r'[^0-9]', '', string)[:2]) 
+        #this works because all ages are in the double digits
+        if num<34:
+            return "Young Adult"
+        elif num<59:
+            return "Middle Adult"
+        else:
+            return "Senior"
+
     
 if __name__ == '__main__':
     # This is for debugging
     Dat = PantryDat('C:/sockdrawer/brashear_projects/data/pantry_data.xlsx')
-
 
 
 
