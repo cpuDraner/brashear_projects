@@ -12,6 +12,7 @@ class PantryDat():
         """
         self.df=None
         self._parse(path)
+        self.surv_df=self._survDfGen()
 
 
     def _parse(self,path):
@@ -155,10 +156,43 @@ class PantryDat():
         else:
             return "Senior"
 
-    
+    def _survDfGen(self):
+        dat=False
+        clients=self.df['id_fix'].unique()
+        age=0
+        income=0
+        dep=1
+        surv_df=None
+        for client in clients:
+            wdf=self.df.loc[self.df['id_fix']==client]
+            #for each client, record the number of months they survived in the study. 
+            time=(wdf['time'].max()-wdf['time'].min())/np.timedelta64(1, 'D')/30
+            #If they made it to december, record False. Otherwise, record true
+            uncensored=True
+            if wdf['time'].max().month==12:
+                uncensored=False
+            if wdf['age_type'].unique()[0]=="Senior":
+                age=3
+            elif wdf['age_type'].unique()[0]=="Middle Adult":
+                age=2
+            elif wdf['age_type'].unique()[0]=="Young Adult":
+                age=1
+            if wdf['income_type'].unique()[0]=="High":
+                income=3
+            elif wdf['income_type'].unique()[0]=="Medium":
+                income=2
+            elif wdf['income_type'].unique()[0]=="Low":
+                income=1
+            if wdf['num_female'].any() & wdf['num_male'].any():dep=wdf['num_female'].max()+wdf['num_male'].max()
+            new_row=pd.DataFrame({"time":[time],"event":[uncensored],"dependants":[dep],"age":[age],"income":[income]})
+            if type(surv_df)==None:surv_df=new_row
+            else:surv_df=pd.concat([surv_df, new_row], ignore_index=True)
+        return surv_df
+
 if __name__ == '__main__':
     # This is for debugging
     Dat = PantryDat('C:/sockdrawer/brashear_projects/data/pantry_data.xlsx')
+    print(Dat.surv_df)
 
 
 

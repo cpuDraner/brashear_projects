@@ -5,11 +5,15 @@ from sksurv.nonparametric import kaplan_meier_estimator
 import matplotlib.pyplot as plt
 import numpy as np
 import matplotlib.patches as mpatches
+import scipy.stats as sps
+from lifelines import CoxPHFitter
 
-dfinit=brashread.PantryDat('C:/sockdrawer/brashear_projects/data/pantry_data.xlsx').df
+d=brashread.PantryDat('C:/sockdrawer/brashear_projects/data/pantry_data.xlsx')
+dfinit=d.df
+sdf=d.surv_df
 dat=False
 clients=dfinit['id_fix'].unique()
-
+print(sdf)
 uncensoreds=[]
 times=[]
 for client in clients:
@@ -40,9 +44,11 @@ plt.show()
 timesL=[]
 timesM=[]
 timesH=[]
+timesNH=[]
 outcomeL=[]
 outcomeM=[]
 outcomeH=[]
+outcomeNH=[]
 
 for client in clients:
     wdf=dfinit.loc[dfinit['id_fix']==client]
@@ -55,6 +61,7 @@ for client in clients:
         timesM.append(time)
     if income=="High":
         timesH.append(time)
+    else: timesNH.append(time)
     #If they made it to december, record False. Otherwise, record true
     uncensored=True
     if wdf['time'].max().month==12:
@@ -65,11 +72,14 @@ for client in clients:
         outcomeM.append(uncensored)
     if income=="High":
         outcomeH.append(uncensored)
+    else:
+        outcomeNH.append(uncensored)
 
 
 datL=pd.DataFrame({'uncensored':outcomeL,'time':timesL,})
 datM=pd.DataFrame({'uncensored':outcomeM,'time':timesM,})
 datH=pd.DataFrame({'uncensored':outcomeH,'time':timesH,})
+datNH=pd.DataFrame({'uncensored':outcomeNH,'time':timesNH,})
 
 tL, spL, ciL = kaplan_meier_estimator(
     datL["uncensored"], datL["time"], conf_type="log-log"
@@ -82,7 +92,8 @@ tM, spM, ciM = kaplan_meier_estimator(
 tH, spH, ciH = kaplan_meier_estimator(
     datH["uncensored"], datH["time"], conf_type="log-log"
 )
-fig, ax = plt.subplots()
+
+"""fig, ax = plt.subplots()
 low=ax.step(tL, spL, where="post",color="red")
 ax.fill_between(tL, ciL[0], ciL[1], alpha=0.25, step="post",color="red")
 middle=ax.step(tM, spM, where="post",color="orange")
@@ -97,14 +108,19 @@ red_patch=mpatches.Patch(color='red', label='< $1000')
 orange_patch=mpatches.Patch(color='orange', label='$1000 - 3000')
 blue_patch=mpatches.Patch(color='blue', label='> $3000')
 ax.legend(handles=[red_patch,orange_patch,blue_patch])
-plt.show()
+plt.show()"""
+
+d1=sps.logrank(outcomeH,outcomeNH)
+print(d1)
 
 timesY=[]
 timesA=[]
 timesS=[]
+timesNS=[]
 outcomeY=[]
 outcomeA=[]
 outcomeS=[]
+outcomeNS=[]
 
 for client in clients:
     wdf=dfinit.loc[dfinit['id_fix']==client]
@@ -117,6 +133,7 @@ for client in clients:
         timesA.append(time)
     if age=="Senior":
         timesS.append(time)
+    else: timesNS.append(time)
     #If they made it to december, record False. Otherwise, record true
     uncensored=True
     if wdf['time'].max().month==12:
@@ -127,11 +144,14 @@ for client in clients:
         outcomeA.append(uncensored)
     if age=="Senior":
         outcomeS.append(uncensored)
+    else:
+        outcomeNS.append(uncensored)
 
 
 datY=pd.DataFrame({'uncensored':outcomeY,'time':timesY,})
 datA=pd.DataFrame({'uncensored':outcomeA,'time':timesA,})
 datS=pd.DataFrame({'uncensored':outcomeS,'time':timesS,})
+datNS=pd.DataFrame({'uncensored':outcomeNS,'time':timesNS,})
 
 tY, spY, ciY = kaplan_meier_estimator(
     datY["uncensored"], datY["time"], conf_type="log-log"
@@ -144,7 +164,7 @@ tA, spA, ciA = kaplan_meier_estimator(
 tS, spS, ciS = kaplan_meier_estimator(
     datS["uncensored"], datS["time"], conf_type="log-log"
 )
-fig, ax = plt.subplots()
+"""fig, ax = plt.subplots()
 low=ax.step(tY, spY, where="post",color="red")
 ax.fill_between(tY, ciY[0], ciY[1], alpha=0.25, step="post",color="red")
 middle=ax.step(tA, spA, where="post",color="orange")
@@ -159,7 +179,7 @@ red_patch=mpatches.Patch(color='red', label='Young Adult')
 orange_patch=mpatches.Patch(color='orange', label='Middle Adult')
 blue_patch=mpatches.Patch(color='blue', label='Senior')
 ax.legend(handles=[red_patch,orange_patch,blue_patch])
-plt.show()
+plt.show()"""
 
 dfinit['num_people']=dfinit['num_male']+dfinit['num_female']
 
@@ -185,9 +205,22 @@ for m in range(12):
 ppmdat=pd.DataFrame({'Month':month,'People':people,})
 print(ppmdat['People'].median())
 print(ppmdat)
-sns.barplot(data=ppmdat,y='People',x='Month')
+"""sns.barplot(data=ppmdat,y='People',x='Month')
 plt.title('Estimated People Assisted per Month')
-plt.show()
+plt.show()"""
 print(ppmdat['People'].std())
 print(ppmdat['People'].var())
 print(x)
+
+d2=sps.logrank(outcomeS,outcomeNS)
+print(d2)
+
+d3=sps.logrank(outcomeS,outcomeY,'greater')
+print(d3)
+
+d4=sps.logrank(outcomeS,outcomeA,'greater')
+print(d4)
+
+cph = CoxPHFitter()
+cph.fit(sdf, duration_col='time', event_col='event')
+cph.print_summary()
